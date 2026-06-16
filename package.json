@@ -1,0 +1,16 @@
+{
+  "name": "obsidian-uclaw",
+  "version": "1.0.4",
+  "description": "Obsidian 插件 — UClaw AI Chat 右侧面板",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.5.0",
+    "typescript": "^5.5.0"
+  }
+}

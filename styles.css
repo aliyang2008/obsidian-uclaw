@@ -1,0 +1,640 @@
+/* =============================================
+   UClaw AI Chat — Obsidian 右侧面板样式
+   使用 Obsidian CSS 变量保持主题一致性
+   ============================================= */
+
+/* ---- 设置页标题行 ---- */
+.uclaw-settings-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.uclaw-settings-header h2 {
+  margin: 0;
+}
+
+.uclaw-settings-header a {
+  font-size: 13px;
+  color: var(--interactive-accent);
+  text-decoration: none;
+}
+
+.uclaw-settings-header a:hover {
+  text-decoration: underline;
+}
+
+/* ---- 文字选中色 ---- */
+.uclaw-chat-container ::selection {
+  background: #10b981;
+  color: #fff;
+}
+
+/* ---- 容器 ---- */
+.uclaw-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  font-size: var(--font-text-size, 13px);
+  color: var(--text-normal);
+  padding-bottom: 40px;
+  box-sizing: border-box;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ---- 头部 ---- */
+.uclaw-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  min-height: 36px;
+}
+
+/* Logo 图标 — 原始比例缩放，高度 ≤ 状态行 1.3 倍 */
+.uclaw-logo {
+  width: auto;
+  height: 16px;
+  flex-shrink: 0;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+/* 状态指示器 */
+.uclaw-status-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.uclaw-status-badge.status-stopped {
+  color: var(--text-muted);
+  background: var(--background-modifier-hover);
+}
+
+.uclaw-status-badge.status-connecting {
+  color: var(--color-orange, #d97706);
+  background: rgba(217, 119, 6, 0.12);
+  animation: uclaw-pulse 1.5s ease-in-out infinite;
+}
+
+.uclaw-status-badge.status-running {
+  color: var(--color-green, #10b981);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.uclaw-status-badge.status-mismatched {
+  color: var(--color-red, #ef4444);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+@keyframes uclaw-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 选择器包装 */
+.uclaw-select-wrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.uclaw-select-wrap select {
+  width: 100%;
+  font-size: 11px;
+  padding: 3px 22px 3px 8px;
+  height: 28px;
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-normal);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.uclaw-select-wrap select:hover {
+  border-color: var(--interactive-accent);
+}
+
+.uclaw-select-wrap select:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+/* 自定义下拉箭头 */
+.uclaw-select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  pointer-events: none;
+}
+
+/* 头部按钮 */
+.uclaw-chat-header button.clickable-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.uclaw-chat-header button.clickable-icon:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* ---- TAB 栏 ---- */
+.uclaw-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.uclaw-tab {
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.uclaw-tab:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.uclaw-tab-active {
+  background: var(--interactive-accent) !important;
+  color: #fff !important;
+}
+
+.uclaw-tab-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+}
+
+.uclaw-tab-btn:hover {
+  background: var(--background-modifier-hover) !important;
+  color: var(--text-normal) !important;
+}
+
+/* ---- 消息列表 ---- */
+.uclaw-chat-box {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.uclaw-chat-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.uclaw-chat-box::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 3px;
+}
+
+/* 空状态提示 */
+.uclaw-empty-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---- 消息气泡 ---- */
+.uclaw-msg-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 90%;
+  margin-bottom: 8px;
+}
+
+.uclaw-msg-wrap.uclaw-msg-user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.uclaw-msg-wrap.uclaw-msg-assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.uclaw-msg-wrap.uclaw-msg-system {
+  align-self: center;
+  align-items: center;
+  max-width: 95%;
+}
+
+/* 角色标签 */
+.uclaw-msg-role {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  padding: 0 4px;
+}
+
+.uclaw-msg-user .uclaw-msg-role {
+  color: var(--text-accent);
+}
+
+.uclaw-msg-assistant .uclaw-msg-role {
+  color: var(--interactive-accent, var(--text-accent));
+}
+
+.uclaw-msg-system .uclaw-msg-role {
+  color: var(--text-error, #e93147);
+}
+
+/* 气泡 */
+.uclaw-msg-bubble {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.uclaw-msg-user .uclaw-msg-bubble {
+  background: var(--interactive-accent, #7c3aed);
+  color: var(--text-on-accent, #fff);
+  border-bottom-right-radius: 3px;
+}
+
+.uclaw-msg-assistant .uclaw-msg-bubble {
+  background: var(--background-primary-alt, var(--background-secondary));
+  color: var(--text-normal);
+  border-bottom-left-radius: 3px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.uclaw-msg-system .uclaw-msg-bubble {
+  background: rgba(233, 49, 71, 0.1);
+  color: var(--text-muted);
+  font-size: 12px;
+  border-radius: 6px;
+  max-width: 95%;
+}
+
+/* 气泡中的 Markdown 元素 */
+.uclaw-msg-bubble pre {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 8px;
+  margin: 6px 0;
+  overflow-x: auto;
+  font-size: 12px;
+}
+
+.uclaw-msg-bubble code {
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  background: var(--background-modifier-hover);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.uclaw-msg-bubble pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.uclaw-msg-user .uclaw-msg-bubble code {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.uclaw-msg-user .uclaw-msg-bubble pre {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.uclaw-msg-bubble p {
+  margin: 0 0 0.5em 0;
+}
+.uclaw-msg-bubble p:last-child {
+  margin-bottom: 0;
+}
+.uclaw-msg-bubble strong {
+  font-weight: 600;
+}
+
+.uclaw-msg-bubble em {
+  font-style: italic;
+}
+
+/* 流式光标 */
+.uclaw-cursor {
+  animation: uclaw-blink 1s step-end infinite;
+  color: var(--interactive-accent, var(--text-accent));
+  margin-left: 1px;
+}
+
+@keyframes uclaw-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes uclaw-dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ---- 输入区 ---- */
+.uclaw-input-area {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+
+.uclaw-input-area textarea {
+  flex: 1;
+  resize: none;
+  font-family: var(--font-text, inherit);
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  min-height: 80px;
+  max-height: 230px;
+  line-height: 1.4;
+}
+
+.uclaw-input-area textarea:focus {
+  outline: none;
+  border-color: var(--interactive-accent, var(--text-accent));
+  box-shadow: 0 0 0 1px var(--interactive-accent, var(--text-accent));
+}
+
+.uclaw-input-area textarea:disabled {
+  opacity: 0.5;
+}
+
+.uclaw-input-area textarea::placeholder {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* 按钮包装 */
+.uclaw-btn-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.uclaw-btn-wrap button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.uclaw-btn-send {
+  background: var(--interactive-accent, #7c3aed) !important;
+  color: #fff !important;
+}
+
+.uclaw-btn-send:hover {
+  filter: brightness(1.1);
+}
+
+.uclaw-btn-cancel {
+  background: var(--background-modifier-error, rgba(233, 49, 71, 0.15)) !important;
+  color: var(--text-error, #e93147) !important;
+}
+
+.uclaw-btn-cancel:hover {
+  background: var(--background-modifier-error-hover, rgba(233, 49, 71, 0.25));
+}
+
+/* 附件按钮 */
+.uclaw-btn-attach {
+  background: var(--background-modifier-hover) !important;
+  color: var(--text-muted) !important;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+  cursor: pointer;
+}
+
+.uclaw-btn-attach:hover {
+  color: var(--text-normal) !important;
+}
+
+/* 附件预览条 */
+.uclaw-attach-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 10px 6px 10px;
+}
+
+.uclaw-attach-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--background-modifier-hover);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 140px;
+}
+
+.uclaw-attach-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.uclaw-attach-remove {
+  cursor: pointer;
+  color: var(--text-error);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+/* ---- 响应式：侧边栏窄宽度适配 ---- */
+@media (max-width: 350px) {
+  .uclaw-chat-header {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .uclaw-msg-wrap {
+    max-width: 95%;
+  }
+
+  .uclaw-msg-bubble {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ---- 消息内附件展示 ---- */
+
+/* 附件行容器 */
+.uclaw-msg-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 图片缩略图 */
+.uclaw-msg-img-thumb {
+  max-width: 120px;
+  max-height: 90px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.uclaw-msg-img-thumb:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* 文档标签 */
+.uclaw-msg-doc-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--background-modifier-hover);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: default;
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.uclaw-msg-doc-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.uclaw-msg-doc-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 预设消息列表 ---- */
+
+.uclaw-preset-list {
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.uclaw-preset-label {
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.uclaw-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.uclaw-preset-chip {
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--background-modifier-hover);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.uclaw-preset-chip:hover {
+  background: var(--interactive-accent);
+  color: #fff;
+  border-color: var(--interactive-accent);
+}
