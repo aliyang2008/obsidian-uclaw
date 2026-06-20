@@ -126,7 +126,7 @@ export class GatewayClient {
     this.reportMessageToGateway()
   }
 
-  /** 通知 UClawDesktop 记录一条消息（共享配额） */
+  /** 通知 UClawDesktop 记录一条消息（共享配额），并用服务器返回值纠正本地计数 */
   private async reportMessageToGateway() {
     try {
       const res = await requestUrl({
@@ -134,7 +134,17 @@ export class GatewayClient {
         method: 'POST'
       })
       if (res.status === 200) {
-        this.log(`配额已同步: 剩余 ${(res.json as any)?.dailyRemaining ?? '?'} 条`)
+        const data = res.json as { dailyRemaining?: number; ok?: boolean }
+        const remaining = typeof data?.dailyRemaining === 'number' ? data.dailyRemaining : -1
+        if (remaining >= 0 && this.dailyMessageLimit > 0) {
+          // 用服务器返回值纠正本地计数（防止本地自增与服务器不同步）
+          const syncedCount = this.dailyMessageLimit - remaining
+          if (syncedCount > this.dailyMessageCount) {
+            this.dailyMessageCount = syncedCount
+          }
+        }
+        this.emitQuota()
+        this.log(`配额已同步: 剩余 ${remaining >= 0 ? remaining : '?'} 条`)
       }
     } catch (e: any) {
       this.log(`配额同步失败: ${e.message || e}`)
