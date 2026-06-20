@@ -332,7 +332,9 @@ export class UClawChatView extends ItemView {
       this.renderWaitingBubble()
     }
 
-    this.chatBoxEl.scrollTop = this.chatBoxEl.scrollHeight
+    requestAnimationFrame(() => {
+      this.chatBoxEl.scrollTop = this.chatBoxEl.scrollHeight
+    })
   }
 
   private renderStreaming() {
@@ -343,7 +345,9 @@ export class UClawChatView extends ItemView {
     } else if (this.sending) {
       this.renderWaitingBubble()
     }
-    this.chatBoxEl.scrollTop = this.chatBoxEl.scrollHeight
+    requestAnimationFrame(() => {
+      this.chatBoxEl.scrollTop = this.chatBoxEl.scrollHeight
+    })
   }
 
   private renderMessageBubble(msg: ChatMessage) {

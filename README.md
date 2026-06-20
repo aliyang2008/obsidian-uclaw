@@ -1,6 +1,6 @@
 # UClaw AI Chat — Obsidian 插件
 
-[![Version](https://img.shields.io/badge/version-1.0.4-blue)](manifest.json)
+[![Version](https://img.shields.io/badge/version-1.0.5-blue)](manifest.json)
 [![Obsidian](https://img.shields.io/badge/Obsidian-%3E%3D1.5.0-7c3aed)](manifest.json)
 
 将 UClawDesktop AI 对话能力嵌入 Obsidian 右侧面板，通过本地 OpenClaw HTTP 网关实现流式 AI 聊天。
@@ -86,7 +86,7 @@
 
 | 设置项 | 默认值 | 说明 |
 |--------|--------|------|
-| 网关端口 | `18790` | OpenClaw 本地 HTTP 端口 |
+| 网关端口 | `18789` | OpenClaw 本地 HTTP 端口 |
 | 配对码 | — | 与 UClawDesktop 渠道插件中的配对码一致 |
 | 快捷消息 | 6 条预设 | 可自定义最多 12 条快捷提示 |
 

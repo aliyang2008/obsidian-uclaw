@@ -25,13 +25,14 @@
   text-decoration: underline;
 }
 
-/* ---- 文字选中色 ---- */
-.uclaw-chat-container ::selection {
-  background: #10b981;
-  color: #fff;
-}
+/* ---- 文字选中色 ----
+   注意：自定义 ::selection 在深层 DOM 中会触发 Chromium 样式重计算风暴，
+   导致选中文本时界面冻结数秒，已移除。选中色回退到 Obsidian 主题默认值。
+*/
 
-/* ---- 容器 ---- */
+/* ---- 容器 ----
+   contain: layout style — 隔离布局计算，避免选中文本时触发全局重排
+*/
 .uclaw-chat-container {
   display: flex;
   flex-direction: column;
@@ -43,6 +44,7 @@
   box-sizing: border-box;
   user-select: text;
   -webkit-user-select: text;
+  contain: layout style;
 }
 
 /* ---- 头部 ---- */
@@ -308,7 +310,6 @@
   border-radius: 10px;
   font-size: 13px;
   line-height: 1.5;
-  word-break: break-word;
   overflow-wrap: break-word;
   user-select: text;
   -webkit-user-select: text;

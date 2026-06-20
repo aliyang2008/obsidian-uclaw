@@ -4,7 +4,7 @@ import { GatewayClient } from './GatewayClient'
 
 interface UClawSettings {
   gatewayPort: number
-  pairingCode: string
+  gatewayToken: string
   presets: PresetMessage[]
 }
 
@@ -18,8 +18,8 @@ const DEFAULT_PRESETS: PresetMessage[] = [
 ]
 
 const DEFAULT_SETTINGS: UClawSettings = {
-  gatewayPort: 18790,
-  pairingCode: '',
+  gatewayPort: 18789,
+  gatewayToken: 'uclaw',
   presets: DEFAULT_PRESETS
 }
 
@@ -32,7 +32,7 @@ export default class UClawPlugin extends Plugin {
     await this.loadSettings()
 
     // 初始化网关客户端
-    this.client = new GatewayClient(this.settings.gatewayPort, this.settings.pairingCode)
+    this.client = new GatewayClient(this.settings.gatewayPort, this.settings.gatewayToken)
 
     // 注册视图
     this.registerView(
@@ -112,7 +112,7 @@ export default class UClawPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings)
     // 更新客户端端口
-    this.client = new GatewayClient(this.settings.gatewayPort, this.settings.pairingCode)
+    this.client = new GatewayClient(this.settings.gatewayPort, this.settings.gatewayToken)
     // 同步预设到视图
     if (this.chatView) {
       this.chatView.setPresets(this.settings.presets)
@@ -154,19 +154,24 @@ class UClawSettingsTab extends PluginSettingTab {
           }
         }))
 
+    containerEl.createEl('div', {
+      text: '💡 提示：修改端口需要切换视图后重连网关。',
+      cls: 'setting-item-description'
+    })
+
     new Setting(containerEl)
-      .setName('配对码')
-      .setDesc('与 UClawDesktop 渠道插件 → Obsidian 知识库中的配对码保持一致')
+      .setName('网关 Token')
+      .setDesc('与 OpenClaw 网关配置中的 Token 保持一致（默认 uclaw）')
       .addText(text => text
-        .setPlaceholder('输入 8 位配对码，如 8DL9P47Z')
-        .setValue(this.plugin.settings.pairingCode)
+        .setPlaceholder('uclaw')
+        .setValue(this.plugin.settings.gatewayToken || 'uclaw')
         .onChange(async (value) => {
-          this.plugin.settings.pairingCode = value.trim()
+          this.plugin.settings.gatewayToken = value.trim() || 'uclaw'
           await this.plugin.saveSettings()
         }))
 
     containerEl.createEl('div', {
-      text: '💡 提示：修改端口需要切换视图后重连网关。',
+      text: '💡 提示：如果网关返回 401 错误，请确认 Token 与网关配置一致。',
       cls: 'setting-item-description'
     })
 

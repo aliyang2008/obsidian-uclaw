@@ -1,6 +1,6 @@
 # UClaw AI Chat — Obsidian 插件操作手册
 
-> **版本**：1.0.4  
+> **版本**：1.0.5  
 > **适用平台**：Obsidian Desktop（Windows / macOS / Linux）  
 > **最低 Obsidian 版本**：1.5.0
 
@@ -365,4 +365,4 @@ npm run build
 
 ---
 
-> **文档版本**：2026-06-13 — 基于源码 v1.0.4 生成
+> **文档版本**：2026-06-13 — 基于源码 v1.0.5 生成
