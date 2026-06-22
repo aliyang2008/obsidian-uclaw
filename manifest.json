@@ -4,7 +4,7 @@
   "version": "1.0.5",
   "minAppVersion": "1.5.0",
   "description": "将 UClawDesktop AI 对话嵌入 Obsidian 右侧面板，通过本地 OpenClaw 网关实现流式 AI 聊天。",
-  "author": "UClaw",
+  "author": "Yuge",
   "authorUrl": "",
   "isDesktopOnly": true
 }
