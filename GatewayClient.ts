@@ -188,6 +188,57 @@ export class GatewayClient {
     for (const l of this.logListeners) l(msg)
   }
 
+  /** 通知 UClawDesktop 插件已就绪，请求建立独立通道 */
+  async notifyReady(): Promise<boolean> {
+    try {
+      const res = await requestUrl({
+        url: 'http://127.0.0.1:18788/plugin-ready',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'obsidian-uclaw', timestamp: Date.now() })
+      })
+      return res.status === 200
+    } catch (e: any) {
+      this.log(`插件注册失败: ${e.message || e}`)
+      return false
+    }
+  }
+
+  /** 从 UClawDesktop 同步指定智能体的会话列表 */
+  async listSessions(agentId: string = 'main'): Promise<{ id: string; label: string; provider: string; updatedAt: number }[]> {
+    try {
+      const res = await requestUrl({
+        url: `http://127.0.0.1:18788/sessions?agentId=${encodeURIComponent(agentId)}`,
+        method: 'GET'
+      })
+      if (res.status === 200 && res.json) {
+        const data = res.json as { ok?: boolean; sessions?: { id: string; label: string; provider: string; updatedAt: number }[] }
+        return data?.sessions || []
+      }
+    } catch (e: any) {
+      this.log(`会话同步失败: ${e.message || e}`)
+    }
+    return []
+  }
+
+  /** 从 UClawDesktop 获取智能体列表 */
+  async listAgents(): Promise<{ id: string; name: string }[]> {
+    try {
+      const res = await requestUrl({
+        url: 'http://127.0.0.1:18788/agents',
+        method: 'GET'
+      })
+      if (res.status === 200 && res.json) {
+        const data = res.json as { ok?: boolean; agents?: { id: string; name: string }[] }
+        return (data?.agents || []).map(a => ({ id: a.id, name: a.name || a.id }))
+      }
+    } catch (e: any) {
+      this.log(`获取智能体列表失败: ${e.message || e}`)
+    }
+    // 回退默认
+    return [{ id: 'main', name: 'Main' }]
+  }
+
   /** 检测网关连通性 */
   async checkHealth(): Promise<boolean> {
     try {
@@ -212,10 +263,10 @@ export class GatewayClient {
     }
   }
 
-  /** 发送聊天消息（支持流式/非流式，通过 requestUrl） */
+  /** 发送聊天消息（通过 UClawDesktop 代理，支持取消） */
   async chatSend(options: ChatSendOptions): Promise<string> {
     const { messages, agentId = 'main', stream = false } = options
-    const reqId = `req-${++this.reqCounter}-${Date.now().toString(36)}`
+    const reqId = String(++this.reqCounter)
     const cbs = this.chatCallbacks
 
     // 每日限额检查
@@ -228,19 +279,15 @@ export class GatewayClient {
     }
 
     try {
+      // 通过 UClawDesktop 代理（由 Electron 主进程转发到网关，支持取消）
       const res = await requestUrl({
-        url: `http://127.0.0.1:${this.port}/v1/chat/completions`,
+        url: 'http://127.0.0.1:18788/proxy-chat',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.gatewayToken}`,
-          'x-openclaw-agent-id': agentId
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: `openclaw:${agentId}`,
           messages,
-          stream,
-          user: 'obsidian-uclaw'
+          agentId,
+          stream
         })
       })
 
@@ -338,13 +385,24 @@ export class GatewayClient {
         onDone()
       }
     }
-    step()
+    setTimeout(step, 0)
   }
 
-  /** 取消当前请求（非流式模式下无需取消） */
+  /** 取消指定请求（通知 UClawDesktop 代理断开网关连接） */
+  async cancelRequest(reqId: string) {
+    try {
+      await requestUrl({
+        url: `http://127.0.0.1:18788/cancel-req?reqId=${encodeURIComponent(reqId)}`,
+        method: 'POST'
+      })
+    } catch (e: any) {
+      this.log(`取消请求失败: ${e.message || e}`)
+    }
+  }
+
+  /** @deprecated 使用 cancelRequest(reqId) 代替 */
   chatCancel() {
-    // requestUrl 不支持取消，但打字机效果可以通过重置状态来实现
-    // 此方法保留用于 API 兼容性
+    // 保留用于 API 兼容性
   }
 
   disconnect() {

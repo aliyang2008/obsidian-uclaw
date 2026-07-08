@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian'
+import { ItemView, WorkspaceLeaf, Modal, App } from 'obsidian'
 import { GatewayClient, GwMessage } from './GatewayClient'
 
 export const UCLAW_CHAT_VIEW_TYPE = 'uclaw-chat-view'
@@ -20,6 +20,7 @@ interface Session {
   id: string
   name: string
   agentId: string
+  agentName: string
   createdAt: number
 }
 
@@ -54,6 +55,9 @@ function saveSessions(sessions: Session[]) {
 const DEFAULT_AGENTS: { id: string; name: string }[] = [
   { id: 'main', name: 'Main' }
 ]
+
+/** 最大会话数 */
+const MAX_SESSIONS = 8
 
 /** 预设消息 */
 export interface PresetMessage {
@@ -135,52 +139,69 @@ export class UClawChatView extends ItemView {
     this.containerEl.empty()
     this.containerEl.addClass('uclaw-chat-container')
 
-    // 加载会话
+    // 加载会话（先本地，再与网关同步，确保与 UClawDesktop 对应）
     this.sessions = loadSessions()
     this.messages = []
     this.msgIdNext = 1
 
     this.buildUI()
 
-    // 设置网关聊天回调
+    // 从网关获取智能体列表
+    this.fetchAgents()
+
+    // 设置网关聊天回调（按 reqId 路由到对应会话，多会话并发互不干扰）
     this.client.setChatCallbacks({
       onDelta: (_reqId, delta) => {
-        if (_reqId !== this.activeReqId) return
-        if (this.reqToSession.get(_reqId) !== this.currentSessionId) return
-        if (this.sendingSessionId !== this.currentSessionId) return
-        this.streamContent += delta
-        this.renderStreaming()
+        const sid = this.reqToSession.get(_reqId)
+        if (!sid) return
+        // 更新 sessionSendState 中的累积内容
+        let ss = this.sessionSendState.get(sid)
+        if (!ss) { ss = { sending: true, streamContent: '', streamDone: false, activeReqId: _reqId, sendingSessionId: sid }; this.sessionSendState.set(sid, ss) }
+        ss.streamContent += delta
+        // 只有当前显示的会话才更新 UI
+        if (sid === this.currentSessionId) {
+          this.streamContent = ss.streamContent
+          this.renderStreaming()
+        }
       },
       onDone: (_reqId) => {
-        const sid = this.reqToSession.get(_reqId) || this.sendingSessionId || this.currentSessionId
-        if (_reqId !== this.activeReqId && sid !== this.currentSessionId) return
-        if (!this.streamDone && this.streamContent) {
-          this.streamDone = true
-          this.saveReplyTo(sid, 'assistant', this.streamContent)
+        const sid = this.reqToSession.get(_reqId)
+        if (!sid) return
+        const ss = this.sessionSendState.get(sid)
+        // 保存回复到对应会话
+        if (ss && !ss.streamDone && ss.streamContent) {
+          ss.streamDone = true
+          this.saveReplyTo(sid, 'assistant', ss.streamContent)
         }
         this.sessionSendState.delete(sid)
         this.reqToSession.delete(_reqId)
-        this.streamContent = ''
-        this.streamDone = false
-        this.sending = false
-        this.activeReqId = ''
-        this.sendingSessionId = ''
-        this.updateSendUI()
-        if (sid === this.currentSessionId) this.renderMessages()
+        // 只有当前显示的会话才更新 UI
+        if (sid === this.currentSessionId) {
+          this.streamContent = ''
+          this.streamDone = false
+          this.sending = false
+          this.activeReqId = ''
+          this.sendingSessionId = ''
+          this.updateSendUI()
+          this.renderMessages()
+        }
       },
       onError: (_reqId, err) => {
-        const sid = this.reqToSession.get(_reqId) || this.sendingSessionId || this.currentSessionId
-        if (_reqId !== this.activeReqId && sid !== this.currentSessionId) return
+        const sid = this.reqToSession.get(_reqId)
+        if (!sid) return
         this.saveReplyTo(sid, 'system', `⚠ 错误: ${err}`)
         this.sessionSendState.delete(sid)
         this.reqToSession.delete(_reqId)
-        this.streamContent = ''
-        this.streamDone = false
-        this.sending = false
-        this.activeReqId = ''
-        this.sendingSessionId = ''
-        this.updateSendUI()
-        if (sid === this.currentSessionId) this.renderMessages()
+        // 只有当前显示的会话才更新 UI
+        if (sid === this.currentSessionId) {
+          this.streamContent = ''
+          this.streamDone = false
+          this.sending = false
+          this.activeReqId = ''
+          this.sendingSessionId = ''
+          this.updateSendUI()
+          this.renderMessages()
+        }
       }
     })
 
@@ -355,7 +376,7 @@ export class UClawChatView extends ItemView {
     wrap.addClass(msg.role === 'user' ? 'uclaw-msg-user' : msg.role === 'system' ? 'uclaw-msg-system' : 'uclaw-msg-assistant')
 
     const roleLabel = wrap.createDiv('uclaw-msg-role')
-    roleLabel.textContent = msg.role === 'user' ? '你' : msg.role === 'system' ? '系统' : 'AI'
+    roleLabel.textContent = msg.role === 'user' ? '你' : msg.role === 'system' ? '系统' : this.getCurrentAgentName()
 
     const bubble = wrap.createDiv('uclaw-msg-bubble')
 
@@ -402,7 +423,7 @@ export class UClawChatView extends ItemView {
     wrap.addClass('uclaw-msg-assistant', 'uclaw-msg-waiting')
 
     const roleLabel = wrap.createDiv('uclaw-msg-role')
-    roleLabel.textContent = 'AI'
+    roleLabel.textContent = this.getCurrentAgentName()
 
     const bubble = wrap.createDiv('uclaw-msg-bubble')
     bubble.style.display = 'flex'
@@ -432,7 +453,7 @@ export class UClawChatView extends ItemView {
     wrap.addClass('uclaw-msg-assistant', 'uclaw-msg-streaming')
 
     const roleLabel = wrap.createDiv('uclaw-msg-role')
-    roleLabel.textContent = 'AI'
+    roleLabel.textContent = this.getCurrentAgentName()
 
     const bubble = wrap.createDiv('uclaw-msg-bubble')
     this.renderMarkdownContent(bubble, this.streamContent)
@@ -506,9 +527,29 @@ export class UClawChatView extends ItemView {
     this.statusEl.textContent = '◌ 检测中…'
     this.statusEl.addClass('status-connecting')
     const ok = await this.client.checkHealth()
-    if (!ok) {
+    if (ok) {
+      // 连通成功后建立网关会话通道
+      await this.client.notifyReady()
+    } else {
       this.statusEl.removeClass('status-connecting')
     }
+  }
+
+  private async fetchAgents() {
+    const agents = await this.client.listAgents()
+    if (agents.length > 0) {
+      this.agentList = agents
+      this.currentAgentId = agents[0].id
+    }
+  }
+
+  /** 获取当前会话对应智能体名称 */
+  private getCurrentAgentName(): string {
+    const s = this.sessions.find(s => s.id === this.currentSessionId)
+    if (s?.agentName) return s.agentName
+    // 回退：从 agentList 查找
+    const a = this.agentList.find(a => a.id === this.currentAgentId)
+    return a?.name || 'AI'
   }
 
   /** 确保至少有一个默认会话 */
@@ -525,29 +566,38 @@ export class UClawChatView extends ItemView {
   private renderTabBar() {
     this.tabBarEl.empty()
 
-    // + 按钮（在左边）
-    const addBtn = this.tabBarEl.createEl('button', {
-      cls: 'uclaw-tab-btn',
-      attr: { 'aria-label': '新建会话', title: '新建会话' }
-    })
-    addBtn.textContent = '+'
-    addBtn.addEventListener('click', () => this.addSession())
-
-    // - 按钮（多于 1 个会话时显示，在左边）
+    // - 按钮（多于 1 个会话时显示）
     if (this.sessions.length > 1) {
       const delBtn = this.tabBarEl.createEl('button', {
         cls: 'uclaw-tab-btn',
         attr: { 'aria-label': '删除当前会话', title: '删除当前会话' }
       })
       delBtn.textContent = '−'
-      delBtn.addEventListener('click', () => this.removeCurrentSession())
+      delBtn.addEventListener('click', () => {
+        new ConfirmModal(this.app, '删除会话', '确定要删除当前会话吗？\n会话中的消息将无法恢复。', () => {
+          this.removeCurrentSession()
+        }).open()
+      })
     }
+
+    // + 按钮（满 8 个时禁用）
+    const addBtn = this.tabBarEl.createEl('button', {
+      cls: 'uclaw-tab-btn',
+      attr: { 'aria-label': this.sessions.length >= MAX_SESSIONS ? '已达上限' : '新建会话',
+              title: this.sessions.length >= MAX_SESSIONS ? '已达 8 个会话上限' : '新建会话' }
+    })
+    addBtn.textContent = this.sessions.length >= MAX_SESSIONS ? '·' : '+'
+    if (this.sessions.length >= MAX_SESSIONS) addBtn.style.opacity = '0.35'
+    addBtn.addEventListener('click', () => this.addSession())
 
     // 会话 TAB
     for (let i = 0; i < this.sessions.length; i++) {
       const s = this.sessions[i]
+      // 解析智能体名（兼容旧会话无 agentName 字段）
+      const agentName = s.agentName || (this.agentList.find(a => a.id === s.agentId)?.name) || s.agentId || 'AI'
       const tab = this.tabBarEl.createDiv('uclaw-tab')
       tab.textContent = `${i + 1}`
+      tab.title = `${agentName}-${s.name}`
       if (s.id === this.currentSessionId) {
         tab.addClass('uclaw-tab-active')
       }
@@ -555,9 +605,26 @@ export class UClawChatView extends ItemView {
     }
   }
 
-  /** 新建会话 */
+  /** 新建会话（上限 8 个），弹出智能体选择器 */
   private addSession() {
-    const idx = this.sessions.length + 1
+    if (this.sessions.length >= MAX_SESSIONS) return
+
+    // 如果只有一个智能体，直接创建
+    if (this.agentList.length <= 1) {
+      this.createSessionWithAgent(this.agentList[0] || { id: 'main', name: 'Main' })
+      return
+    }
+
+    // 多个智能体时弹出选择器
+    new AgentSelectModal(this.app, this.agentList, (agent) => {
+      this.createSessionWithAgent(agent)
+    }).open()
+  }
+
+  /** 使用指定智能体创建新会话 */
+  private createSessionWithAgent(agent: { id: string; name: string }) {
+    if (this.sessions.length >= MAX_SESSIONS) return
+
     // 找出空缺编号
     const usedNums = new Set(
       this.sessions.map(s => {
@@ -571,9 +638,11 @@ export class UClawChatView extends ItemView {
     const session: Session = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name: `会话 ${num}`,
-      agentId: this.currentAgentId,
+      agentId: agent.id,
+      agentName: agent.name,
       createdAt: Date.now()
     }
+    this.currentAgentId = agent.id
     this.sessions.push(session)
     saveSessions(this.sessions)
     this.switchToSession(session.id)
@@ -599,6 +668,7 @@ export class UClawChatView extends ItemView {
     this.renderTabBar()
   }
 
+
   /** 切换到指定会话 */
   private switchToSession(sessionId: string) {
     if (sessionId === this.currentSessionId) return
@@ -620,6 +690,11 @@ export class UClawChatView extends ItemView {
     }
 
     this.currentSessionId = sessionId
+
+    // 同步当前智能体
+    const cur = this.sessions.find(s => s.id === sessionId)
+    if (cur) this.currentAgentId = cur.agentId
+
     const saved = loadMessages(sessionId)
     this.messages = saved
     this.msgIdNext = saved.length > 0 ? Math.max(...saved.map(m => m.id), 0) + 1 : 1
@@ -725,6 +800,24 @@ export class UClawChatView extends ItemView {
         this.inputEl.setSelectionRange(this.inputEl.value.length, this.inputEl.value.length)
       })
     }
+
+    // "当前文档"按钮
+    const docBtn = row.createDiv('uclaw-preset-chip uclaw-current-doc-chip')
+    docBtn.textContent = '当前文档'
+    docBtn.title = '将当前打开的文档绝对路径填入输入框'
+    docBtn.addEventListener('click', () => {
+      const file = this.app.workspace.getActiveFile()
+      if (!file) return
+      const fullPath = this.app.vault.adapter.getFullPath(file.path)
+      const current = this.inputEl.value
+      if (current && !current.endsWith('\n')) {
+        this.inputEl.value = current + '\n' + fullPath
+      } else {
+        this.inputEl.value = current + fullPath
+      }
+      this.inputEl.focus()
+      this.inputEl.setSelectionRange(this.inputEl.value.length, this.inputEl.value.length)
+    })
   }
 
   // ========== 发送 / 取消 ==========
@@ -815,8 +908,8 @@ export class UClawChatView extends ItemView {
     }
   }
 
+  /** 停止当前会话（通知网关取消 + 本地清理，仅影响当前会话） */
   private cancel() {
-    this.client.chatCancel()
     if (this.streamContent && this.activeReqId) {
       this.messages.push({
         role: 'assistant',
@@ -825,12 +918,17 @@ export class UClawChatView extends ItemView {
       })
       saveMessages(this.currentSessionId, this.messages)
     }
+    // 通知 UClawDesktop 代理断开网关连接
+    if (this.activeReqId) {
+      this.client.cancelRequest(this.activeReqId)
+      this.reqToSession.delete(this.activeReqId)
+    }
     this.streamContent = ''
-    if (this.activeReqId) this.reqToSession.delete(this.activeReqId)
     this.streamDone = false
     this.sending = false
     this.activeReqId = ''
     this.sendingSessionId = ''
+    this.sessionSendState.delete(this.currentSessionId)
     this.updateSendUI()
     this.renderMessages()
   }
@@ -867,5 +965,109 @@ export class UClawChatView extends ItemView {
     if (bytes < 1024) return `${bytes}B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+  }
+}
+
+/** 确认对话框 */
+class ConfirmModal extends Modal {
+  private title: string
+  private message: string
+  private onConfirm: () => void
+
+  constructor(app: App, title: string, message: string, onConfirm: () => void) {
+    super(app)
+    this.title = title
+    this.message = message
+    this.onConfirm = onConfirm
+  }
+
+  onOpen() {
+    const { contentEl } = this
+    contentEl.empty()
+    contentEl.addClass('uclaw-confirm-modal')
+
+    contentEl.createEl('h3', { text: this.title })
+
+    const msgEl = contentEl.createEl('p')
+    msgEl.style.whiteSpace = 'pre-line'
+    msgEl.textContent = this.message
+
+    const btnRow = contentEl.createDiv('uclaw-confirm-btns')
+
+    const cancelBtn = btnRow.createEl('button', { text: '取消' })
+    cancelBtn.addEventListener('click', () => this.close())
+
+    const okBtn = btnRow.createEl('button', { text: '确定删除', cls: 'mod-cta' })
+    okBtn.addEventListener('click', () => {
+      this.close()
+      this.onConfirm()
+    })
+  }
+
+  onClose() {
+    this.contentEl.empty()
+  }
+}
+
+/** 智能体选择对话框（确认框风格） */
+class AgentSelectModal extends Modal {
+  private agents: { id: string; name: string }[]
+  private onSelect: (agent: { id: string; name: string }) => void
+  private selectedIdx = -1
+  private confirmBtn!: HTMLButtonElement
+
+  constructor(app: App, agents: { id: string; name: string }[], onSelect: (agent: { id: string; name: string }) => void) {
+    super(app)
+    this.agents = agents
+    this.onSelect = onSelect
+  }
+
+  onOpen() {
+    const { contentEl } = this
+    contentEl.empty()
+    contentEl.addClass('uclaw-agent-select-modal')
+
+    contentEl.createEl('h3', { text: '新建会话' })
+    contentEl.createEl('p', {
+      text: `请选择要使用的智能体（共 ${this.agents.length} 个）：`,
+      cls: 'setting-item-description'
+    })
+
+    const list = contentEl.createDiv('uclaw-agent-list')
+    for (let i = 0; i < this.agents.length; i++) {
+      const agent = this.agents[i]
+      const item = list.createDiv('uclaw-agent-item')
+      item.createSpan({ text: agent.name, cls: 'uclaw-agent-name' })
+      item.createSpan({ text: agent.id, cls: 'uclaw-agent-id' })
+      item.addEventListener('click', () => {
+        // 切换选中状态
+        const prev = list.querySelector('.uclaw-agent-item-selected')
+        if (prev) prev.removeClass('uclaw-agent-item-selected')
+        item.addClass('uclaw-agent-item-selected')
+        this.selectedIdx = i
+        this.confirmBtn.disabled = false
+        this.confirmBtn.removeClass('mod-cta-disabled')
+      })
+    }
+
+    // 按钮行
+    const btnRow = contentEl.createDiv('uclaw-confirm-btns')
+    btnRow.style.marginTop = '12px'
+
+    const cancelBtn = btnRow.createEl('button', { text: '取消' })
+    cancelBtn.addEventListener('click', () => this.close())
+
+    this.confirmBtn = btnRow.createEl('button', { text: '确认创建', cls: 'mod-cta mod-cta-disabled' })
+    this.confirmBtn.disabled = true
+    this.confirmBtn.addEventListener('click', () => {
+      if (this.selectedIdx >= 0) {
+        this.close()
+        this.onSelect(this.agents[this.selectedIdx])
+      }
+    })
+  }
+
+  onClose() {
+    this.contentEl.empty()
   }
 }

@@ -2,3 +2,7 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+build_stdout.txt
+build_stderr.txt
+dist/
+*.tgz

@@ -207,10 +207,11 @@
 }
 
 .uclaw-tab-btn {
-  width: 22px;
+  width: 29px;
   height: 22px;
   padding: 0;
   font-size: 14px;
+  font-weight: bold;
   line-height: 1;
   border: none;
   border-radius: 4px;
@@ -220,7 +221,7 @@
   align-items: center;
   justify-content: center;
   background: transparent !important;
-  color: var(--text-muted) !important;
+  color: var(--color-red, #ef4444) !important;
 }
 
 .uclaw-tab-btn:hover {
@@ -264,7 +265,7 @@
 .uclaw-msg-wrap {
   display: flex;
   flex-direction: column;
-  max-width: 90%;
+  max-width: 100%;
   margin-bottom: 8px;
 }
 
@@ -638,4 +639,91 @@
   background: var(--interactive-accent);
   color: #fff;
   border-color: var(--interactive-accent);
+}
+
+/* "当前文档"按钮 —— 虚线边框区分操作按钮 */
+.uclaw-current-doc-chip {
+  border-style: dashed;
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+}
+
+/* ---- 智能体选择弹窗 ---- */
+.uclaw-agent-select-modal {
+  min-width: 240px;
+}
+
+.uclaw-agent-select-modal h3 {
+  margin: 0 0 4px 0;
+}
+
+.uclaw-agent-select-modal .setting-item-description {
+  margin: 0 0 12px 0;
+}
+
+.uclaw-agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.uclaw-agent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.uclaw-agent-item:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.uclaw-agent-item-selected {
+  background: rgba(var(--interactive-accent-rgb, 99, 102, 241), 0.12);
+  border-color: var(--interactive-accent);
+}
+
+.uclaw-agent-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+.uclaw-agent-id {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ---- 确认框通用样式 ---- */
+.uclaw-confirm-modal h3 {
+  margin: 0 0 8px 0;
+}
+
+.uclaw-confirm-modal p {
+  margin: 0 0 12px 0;
+  white-space: pre-line;
+}
+
+.uclaw-confirm-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.uclaw-confirm-btns button {
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.uclaw-confirm-btns .mod-cta-disabled {
+  opacity: 0.45;
+  pointer-events: none;
 }
